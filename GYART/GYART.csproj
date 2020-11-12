@@ -41,7 +41,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Fiende.cs" />
+    <Compile Include="Font.cs" />
     <Compile Include="Game1.cs" />
+    <Compile Include="Pengar.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Spelare.cs" />

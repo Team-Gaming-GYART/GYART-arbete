@@ -10,82 +10,176 @@ using Microsoft.Xna.Framework;
 
 namespace GYART
 {
-    class Spelare
+    class GameObject
     {
-        Texture2D _texture;
-        Vector2 _position;
-        Vector2 _hastighet;
+        protected Texture2D texture;
+        protected Vector2 position;
 
-        Rectangle sourceRect;
-        Rectangle destRect = new Rectangle(300, 300, 92, 104);
-
-        float animHast = 0.1f;
-        int frames = 0;
-        float tid;
-
-        public Spelare(Texture2D texture, float X, float Y, float hastighetX, float hastighetY)
+        public GameObject(Texture2D texture, float X, float Y)
         {
-            this._texture = texture;
-            this._position.X = X;
-            this._position.Y = Y;
-            this._hastighet.X = hastighetX;
-            this._hastighet.Y = hastighetY;
+            this.texture = texture;
+            this.position.X = X;
+            this.position.Y = Y;
         }
 
-        public void Update(GameWindow Window, GameTime gameTime)
+        public void Draw(SpriteBatch spriteBatch)
+        {
+            spriteBatch.Draw(texture, position, Color.White);
+        }
+
+        public float X { get { return position.X; } }
+        public float Y { get { return position.Y; } }
+        public float Width { get { return texture.Width; } }
+        public float Height { get { return texture.Height; } }
+    }
+
+    abstract class MovingObject : GameObject
+    {
+        protected Vector2 hastighet;
+        public MovingObject(Texture2D texture, float X, float Y, float hastighetX, float hastighetY):base(texture, X, Y)
+        {
+            this.hastighet.X = hastighetX;
+            this.hastighet.Y = hastighetY;
+        }
+    }
+
+    class PhysicalObject : MovingObject
+    {
+        bool isAlive = true;
+
+        public PhysicalObject(Texture2D texture, float Y, float X, float hastighetX, float hastighetY) : base(texture, X, Y, hastighetX, hastighetY)
+        {
+        }
+
+        public bool KollaKollision(PhysicalObject annan)
+        {
+            Rectangle spelareRect = new Rectangle(Convert.ToInt32(X), Convert.ToInt32(Y), Convert.ToInt32(Width), Convert.ToInt32(Height));
+            Rectangle annanRect = new Rectangle(Convert.ToInt32(annan.X), Convert.ToInt32(annan.Y), Convert.ToInt32(annan.Width), Convert.ToInt32(annan.Height));
+            return spelareRect.Intersects(annanRect);
+        }
+
+        public bool IsAlive { get { return isAlive; } set { isAlive = value; } }
+    }
+
+    class Spelare : PhysicalObject
+    {
+        int pengar = 0;
+
+        bool bana1;
+        bool bana2;
+        bool bana3;
+        bool bana4;
+
+        float cooldown = 0.1f;
+
+        float förflutitid;
+        int frames = 0;
+        
+        Texture2D rum;
+
+        Rectangle bakgrund = new Rectangle(0, 0, 1920, 1080);
+        Rectangle sourceRect;
+        Rectangle destRect = new Rectangle(0, 0, 92, 104);
+
+        public Spelare(Texture2D texture, Texture2D rum, float X, float Y, float hastighetX, float hastighetY, bool b1, bool b2, bool b3, bool b4) : base(texture, X, Y, hastighetX, hastighetY)
+        {
+            bana1 = b1;
+            bana2 = b2;
+            bana3 = b3;
+            bana4 = b4;
+        }
+
+        public int Pengar { get { return pengar; } set { pengar = value; } }
+
+        public void Update(GameWindow Window, ContentManager Content, GameTime gameTime)
         {
             KeyboardState ks = Keyboard.GetState();
-
+            
             if (ks.IsKeyDown(Keys.D))
             {
-                _position.X += _hastighet.X;
+                position.X += hastighet.X;
+                texture = Content.Load<Texture2D>("Spelare/Gå/GoblinRight");
                 AnimationGå(gameTime);
             }
-            else if (ks.IsKeyDown(Keys.A))
+            if (ks.IsKeyDown(Keys.A))
             {
-                _position.X -= _hastighet.X;
+                position.X -= hastighet.X;
+                texture = Content.Load<Texture2D>("Spelare/Gå/GoblinLeft");
                 AnimationGå(gameTime);
             }
-            else if (ks.IsKeyDown(Keys.W))
+            if (ks.IsKeyDown(Keys.W))
             {
-                _position.Y -= _hastighet.Y;
+                position.Y -= hastighet.Y;
+                texture = Content.Load<Texture2D>("Spelare/Gå/GoblinUp");
                 AnimationGå(gameTime);
             }
-            else if (ks.IsKeyDown(Keys.S))
+            if (ks.IsKeyDown(Keys.S))
             {
-                _position.Y += _hastighet.Y;
+                position.Y += hastighet.Y;
+                texture = Content.Load<Texture2D>("Spelare/Gå/GoblinDown");
                 AnimationGå(gameTime);
             }
-            else
+            if (Mouse.GetState().LeftButton == ButtonState.Pressed)
             {
-                sourceRect = new Rectangle(0, 0, 92, 104);
+                texture = Content.Load<Texture2D>("Spelare/Attack/GoblinAD");
             }
-                
             
-            destRect = new Rectangle((int)_position.X, (int)_position.Y, 92, 104);
+            destRect = new Rectangle((int)position.X, (int)position.Y, 92, 104);
 
-            if (_position.X < 0)
-                _position.X = 0;
-
-            if (_position.X > Window.ClientBounds.Width - _texture.Width)
-                _position.X = Window.ClientBounds.Width - _texture.Width;
-
-            if (_position.Y < 0)
-                _position.Y = 0;
-
-            if (_position.Y > Window.ClientBounds.Height - _texture.Height)
-                _position.Y = Window.ClientBounds.Height - _texture.Height;
+            RumByte();
         }
-        
+
+        public void RumByte()
+        {
+            if (bana1 && Y < 0)
+            {
+                position = new Vector2(770, 940);
+                bana1 = false;
+                bana2 = true;
+            }
+            if (bana2 && Y < 0)
+            {
+                position = new Vector2(770, 940);
+                bana2 = false;
+                bana3 = true;
+            }
+            else if (bana2 && Y > 940)
+            {
+                position = new Vector2(770, 0);
+                bana2 = false;
+                bana1 = true;
+            }
+
+            if (bana3 && X < 0)
+            {
+                position = new Vector2(1800, 500);
+                bana3 = false;
+                bana4 = true;
+            }
+            else if (bana3 && Y > 940)
+            {
+                position = new Vector2(770, 0);
+                bana3 = false;
+                bana2 = true;
+            }
+
+            if (bana4 && X > 1920)
+            {
+                position = new Vector2(0, 500);
+                bana4 = false;
+                bana3 = true;
+            }
+        }
+
         private void AnimationGå(GameTime gameTime)
         {
             //öka förflutitid med 1 sekund
-            tid += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            förflutitid += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            if (tid >= animHast)
+            if (förflutitid >= cooldown)
             {
                 //2 = 1 - antalet frames för animationen
-                if (tid >= 2)
+                if (frames >= 2)
                 {
                     frames = 0;
                 }
@@ -93,15 +187,36 @@ namespace GYART
                 {
                     frames++;
                 }
-                tid = 0;
+                förflutitid = 0;
             }
 
             sourceRect = new Rectangle(92 * frames, 0, 92, 104);
         }
 
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(SpriteBatch spriteBatch, ContentManager Content)
         {
-            spriteBatch.Draw(_texture, destRect, sourceRect, Color.White);
+            if (bana1)
+            {
+                rum = Content.Load<Texture2D>("Rum/Bakgrund1");
+                spriteBatch.Draw(rum, bakgrund, Color.White);
+            }
+            else if (bana2)
+            {
+                rum = Content.Load<Texture2D>("Rum/Bakgrund2");
+                spriteBatch.Draw(rum, bakgrund, Color.White);
+            }
+            else if (bana3)
+            {
+                rum = Content.Load<Texture2D>("Rum/Bakgrund3");
+                spriteBatch.Draw(rum, bakgrund, Color.White);
+            }
+            else if (bana4)
+            {
+                rum = Content.Load<Texture2D>("Rum/Bakgrund4");
+                spriteBatch.Draw(rum, bakgrund, Color.White);
+            }
+
+            spriteBatch.Draw(texture, destRect, sourceRect, Color.White);
         }
     }
 }
